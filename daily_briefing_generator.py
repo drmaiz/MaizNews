@@ -7,9 +7,6 @@ from datetime import datetime
 from pathlib import Path
 
 # Import local clients
-from auth import build_services
-from calendar_client import get_events, split_today_upcoming
-from gmail_client import get_unread_count, get_recent_unread
 from weather_client import get_weather
 from news_client import get_headlines
 from quote_client import get_quote
@@ -469,7 +466,7 @@ def _get_category_and_emoji(headline):
                 return category, emoji
 
     # Default
-    return "News", "📰", ""
+    return "News", "📰"
 
 
 def _get_takeaway(headline, category, source):
@@ -560,12 +557,8 @@ def fetch_all_data():
             print("Using cached calendar data")
             data["calendar"] = cached
         else:
-            print("Fetching calendar events...")
-            calendar_service, gmail_service = build_services()
-            events = get_events(calendar_service, days=7)
-            data["calendar"] = events
-            set_cache("calendar", events)
-            print(f"Cached calendar data ({len(events)} events)")
+            print("Skipping calendar (use MCP connector to fetch)")
+            data["calendar"] = []
 
         # Gmail data
         if cached := get_cached_data("gmail"):
@@ -573,15 +566,9 @@ def fetch_all_data():
             data["unread_count"] = cached["unread_count"]
             data["recent_emails"] = cached["recent_emails"]
         else:
-            print("Fetching email data...")
-            if "gmail_service" not in locals():
-                calendar_service, gmail_service = build_services()
-            unread_count = get_unread_count(gmail_service)
-            recent_emails = get_recent_unread(gmail_service, max_results=5)
-            data["unread_count"] = unread_count
-            data["recent_emails"] = recent_emails
-            set_cache("gmail", {"unread_count": unread_count, "recent_emails": recent_emails})
-            print(f"Cached email data ({unread_count} unread)")
+            print("Skipping email (use MCP connector to fetch)")
+            data["unread_count"] = 0
+            data["recent_emails"] = []
 
         # Weather
         if cached := get_cached_data("weather"):
