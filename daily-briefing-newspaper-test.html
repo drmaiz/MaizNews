@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Daily Briefing</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@700;800&display=swap');
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root { --ink: #1a1a2e; --paper: #f7f6f2; --accent: #c8102e; }
+        body { font-family: 'Inter', -apple-system, sans-serif; background: var(--paper); color: var(--ink); }
+        .masthead { border-bottom: 3px double var(--ink); padding: 28px 48px 20px; display: flex; }
+        .masthead-title { font-family: 'Playfair Display', serif; font-size: 42px; font-weight: 800; }
+        .item { padding: 28px 0; border-bottom: 1px solid #d4cfc8; display: grid; grid-template-columns: 56px 1fr; gap: 0 20px; }
+        .item:last-child { border-bottom: none; }
+        .item-emoji { font-size: 28px; }
+        .category-tag { font-size: 9px; font-weight: 700; background: var(--ink); color: #fff; padding: 2px 8px; }
+        .headline { font-family: 'Playfair Display', serif; font-size: 22px; font-weight: 700; margin-bottom: 10px; }
+        .summary { font-size: 14px; line-height: 1.7; }
+        .takeaway { display: flex; gap: 8px; background: #fff8f0; border-left: 3px solid var(--accent); padding: 9px 12px; }
+        .takeaway-arrow { color: var(--accent); font-weight: 700; }
+        @media (prefers-color-scheme: dark) { :root { --ink: #f0ece4; --paper: #16161e; } }
+        @media (max-width: 640px) { .item { grid-template-columns: 40px 1fr; } }
+    </style>
+</head>
+<body>
+<header class="masthead">
+    <div class="masthead-left">
+        <div style="font-size: 10px; color: #c8102e; text-transform: uppercase;">Daily Briefing</div>
+        <div class="masthead-title">The Morning Read</div>
+    </div>
+    <div style="text-align: right; font-size: 11px;">
+        <div style="font-weight: 600;">Saturday, June 20, 2026</div>
+        <div>5 items · Personal Edition</div>
+    </div>
+</header>
+
+<main style="max-width: 900px; margin: 0 auto; padding: 0 48px;">
+
+<article class="item">
+    <div class="item-emoji">📅</div>
+    <div class="item-body">
+        <div style="display: flex; gap: 10px; margin-bottom: 6px;">
+            <span class="category-tag">Calendar</span>
+            <span style="font-size: 11px;">Saturday, June 20 · 9:00 AM</span>
+        </div>
+        <h2 class="headline">Team Standup</h2>
+        <p class="summary">Conference Room A</p>
+    </div>
+</article>
+
+<article class="item">
+    <div class="item-emoji">📧</div>
+    <div class="item-body">
+        <div style="display: flex; gap: 10px; margin-bottom: 6px;">
+            <span class="category-tag">Email</span>
+            <span style="font-size: 11px;"><strong>Gmail</strong> · Just now</span>
+        </div>
+        <h2 class="headline">5 Unread Messages</h2>
+        <p class="summary">• <strong>Project Update</strong> from manager@company.com</p>
+    </div>
+</article>
+
+<article class="item">
+    <div class="item-emoji">🌤️</div>
+    <div class="item-body">
+        <div style="display: flex; gap: 10px; margin-bottom: 6px;">
+            <span class="category-tag">Weather</span>
+            <span style="font-size: 11px;"><strong>Jacksonville, FL</strong> · Live</span>
+        </div>
+        <h2 class="headline">Current Conditions</h2>
+        <p class="summary"><strong>92°F</strong> — Sunny<br>Humidity 75% • Wind 8 mph</p>
+    </div>
+</article>
+
+<article class="item">
+    <div class="item-emoji">🔴</div>
+    <div class="item-body">
+        <div style="display: flex; gap: 10px; margin-bottom: 6px;">
+            <span class="category-tag">Breaking</span>
+            <span style="font-size: 11px;"><strong>Reuters</strong> · Today</span>
+        </div>
+        <h2 class="headline">AI Companies Report Strong Growth</h2>
+        <div class="takeaway">
+            <span class="takeaway-arrow">→</span>
+            <span style="font-size: 13px;">Source: <strong>Reuters</strong></span>
+        </div>
+    </div>
+</article>
+
+<article class="item">
+    <div class="item-emoji">✨</div>
+    <div class="item-body">
+        <div style="display: flex; gap: 10px; margin-bottom: 6px;">
+            <span class="category-tag">Inspiration</span>
+            <span style="font-size: 11px;">Daily Quote · Zenquotes</span>
+        </div>
+        <h2 class="headline" style="font-style: italic;">"The future belongs to those who believe in the beauty of their dreams."</h2>
+        <p class="summary">— Eleanor Roosevelt</p>
+    </div>
+</article>
+
+</main>
+
+<footer style="border-top: 3px double #1a1a2e; margin: 60px 48px 0; padding: 16px 0; font-size: 11px;">
+    <div>📰 <strong>The Morning Read</strong> — Daily Briefing</div>
+    <div>Saturday, June 20, 2026 · Personal Edition</div>
+</footer>
+
+</body>
+</html>
