@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Briefing</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #2d3748;
+        }
+
+        .container {
+            max-width: 700px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px 25px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            letter-spacing: 0.5px;
+        }
+
+        .header .date {
+            font-size: 14px;
+            opacity: 0.9;
+            font-weight: 300;
+        }
+
+        .divider {
+            height: 3px;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .news-item {
+            margin-bottom: 28px;
+            padding-bottom: 28px;
+            border-bottom: 1px solid #e2e8f0;
+            transition: all 0.3s ease;
+        }
+
+        .news-item:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        .news-item:hover {
+            transform: translateX(4px);
+            box-shadow: -3px 0 0 #667eea;
+        }
+
+        .news-header {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .emoji {
+            font-size: 24px;
+            min-width: 24px;
+        }
+
+        .news-title {
+            flex: 1;
+        }
+
+        .category {
+            display: inline-block;
+            background: #f7fafc;
+            color: #667eea;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+        }
+
+        .headline {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1a202c;
+            line-height: 1.4;
+            margin-bottom: 8px;
+        }
+
+        .meta {
+            display: flex;
+            gap: 16px;
+            font-size: 12px;
+            color: #718096;
+            margin-bottom: 12px;
+        }
+
+        .source {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .source::before {
+            content: "📰";
+            font-size: 12px;
+        }
+
+        .time {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .time::before {
+            content: "⏱️";
+            font-size: 12px;
+        }
+
+        .summary {
+            font-size: 14px;
+            line-height: 1.6;
+            color: #4a5568;
+            margin-bottom: 12px;
+        }
+
+        .takeaway {
+            background: #f0f4ff;
+            border-left: 3px solid #667eea;
+            padding: 10px 12px;
+            border-radius: 4px;
+            font-size: 13px;
+            color: #5a67d8;
+            font-weight: 500;
+        }
+
+        .takeaway::before {
+            content: "→ ";
+            margin-right: 4px;
+            font-weight: 700;
+        }
+
+        .footer {
+            background: #f7fafc;
+            padding: 20px;
+            text-align: center;
+            font-size: 12px;
+            color: #718096;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .footer a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
+        }
+
+        /* Print styles */
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+
+            .container {
+                box-shadow: none;
+                max-width: 100%;
+            }
+
+            .news-item:hover {
+                transform: none;
+                box-shadow: none;
+            }
+        }
+
+        /* Dark mode */
+        @media (prefers-color-scheme: dark) {
+            body {
+                background: #1a202c;
+            }
+
+            .container {
+                background: #2d3748;
+                color: #e2e8f0;
+            }
+
+            .headline {
+                color: #f7fafc;
+            }
+
+            .category {
+                background: rgba(102, 126, 234, 0.1);
+                color: #a0aec0;
+            }
+
+            .summary {
+                color: #cbd5e0;
+            }
+
+            .takeaway {
+                background: rgba(102, 126, 234, 0.15);
+                color: #bee3f8;
+            }
+
+            .divider {
+                background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+            }
+
+            .news-item {
+                border-bottom-color: #4a5568;
+            }
+
+            .footer {
+                background: #1a202c;
+                border-top-color: #4a5568;
+            }
+        }
+
+        /* Mobile responsive */
+        @media (max-width: 600px) {
+            .container {
+                border-radius: 0;
+            }
+
+            .header {
+                padding: 20px 15px;
+            }
+
+            .header h1 {
+                font-size: 24px;
+            }
+
+            .content {
+                padding: 20px;
+            }
+
+            .headline {
+                font-size: 16px;
+            }
+
+            .news-item {
+                margin-bottom: 20px;
+                padding-bottom: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📰 Daily Briefing</h1>
+            <div class="date" id="date"></div>
+        </div>
+        <div class="divider"></div>
+
+        <div class="content" id="content">
+            <!-- News items will be inserted here -->
+        </div>
+
+        <div class="footer">
+            <p>Stay informed • Curated daily • <a href="#">Share</a> • <a href="#">Export</a></p>
+        </div>
+    </div>
+
+    <script>
+        // Set current date
+        const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+        const today = new Date().toLocaleDateString('en-US', options);
+        document.getElementById('date').textContent = today;
+
+        // Example data structure (replace with real data)
+        const briefingData = [
+            {
+                emoji: '🔴',
+                category: 'Breaking',
+                headline: 'Major Tech Acquisition Announced',
+                source: 'Reuters',
+                time: '2 hours ago',
+                summary: 'Leading tech company announces acquisition of emerging startup for $500M. The deal marks significant expansion into AI infrastructure market.',
+                takeaway: 'Consolidation accelerates in AI sector with increased M&A activity.'
+            },
+            // Add more items as needed
+        ];
+
+        // Render content
+        const contentDiv = document.getElementById('content');
+        briefingData.forEach(item => {
+            const itemHTML = `
+                <div class="news-item">
+                    <div class="news-header">
+                        <div class="emoji">${item.emoji}</div>
+                        <div class="news-title">
+                            <div class="category">${item.category}</div>
+                            <div class="headline">${item.headline}</div>
+                            <div class="meta">
+                                <div class="source">${item.source}</div>
+                                <div class="time">${item.time}</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="summary">${item.summary}</div>
+                    <div class="takeaway">${item.takeaway}</div>
+                </div>
+            `;
+            contentDiv.insertAdjacentHTML('beforeend', itemHTML);
+        });
+    </script>
+</body>
+</html>
