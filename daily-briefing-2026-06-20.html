@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Briefing — Saturday, June 20, 2026</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@700;800&display=swap');
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --ink: #1a1a2e;
+            --paper: #f7f6f2;
+            --accent: #c8102e;
+            --rule: #d4cfc8;
+            --muted: #7a7570;
+            --highlight-bg: #fff8f0;
+            --medical: #1a5276;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: var(--paper);
+            color: var(--ink);
+            min-height: 100vh;
+        }
+
+        /* MASTHEAD */
+        .masthead {
+            border-bottom: 3px double var(--ink);
+            padding: 28px 48px 20px;
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            gap: 16px;
+        }
+
+        .masthead-left { flex: 1; }
+
+        .edition-label {
+            font-size: 10px;
+            font-weight: 600;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: var(--accent);
+            margin-bottom: 4px;
+        }
+
+        .masthead-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 42px;
+            font-weight: 800;
+            line-height: 1;
+            letter-spacing: -0.5px;
+        }
+
+        .masthead-right {
+            text-align: right;
+            font-size: 11px;
+            color: var(--muted);
+            line-height: 1.7;
+        }
+
+        .masthead-date {
+            font-weight: 600;
+            font-size: 13px;
+            color: var(--ink);
+        }
+
+        /* SECTION RIBBON */
+        .section-ribbon {
+            border-top: 1px solid var(--ink);
+            border-bottom: 1px solid var(--ink);
+            padding: 6px 48px;
+            display: flex;
+            gap: 24px;
+            overflow-x: auto;
+            font-size: 10px;
+            font-weight: 600;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            color: var(--muted);
+        }
+
+        .section-ribbon span { white-space: nowrap; cursor: pointer; }
+        .section-ribbon span:hover { color: var(--accent); }
+
+        /* MAIN LAYOUT */
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 0 48px 60px;
+        }
+
+        /* NEWS ITEM */
+        .item {
+            padding: 28px 0;
+            border-bottom: 1px solid var(--rule);
+            display: grid;
+            grid-template-columns: 56px 1fr;
+            gap: 0 20px;
+        }
+
+        .item:last-child { border-bottom: none; }
+
+        .item-emoji {
+            font-size: 28px;
+            line-height: 1;
+            padding-top: 4px;
+            text-align: center;
+        }
+
+        .item-body { }
+
+        .item-meta {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 6px;
+            flex-wrap: wrap;
+        }
+
+        .category-tag {
+            font-size: 9px;
+            font-weight: 700;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            background: var(--ink);
+            color: #fff;
+            padding: 2px 8px;
+            border-radius: 2px;
+        }
+
+        .category-tag.medical { background: var(--medical); }
+        .category-tag.breaking { background: var(--accent); }
+
+        .source-time {
+            font-size: 11px;
+            color: var(--muted);
+        }
+
+        .source-time strong { color: var(--ink); font-weight: 600; }
+
+        .headline {
+            font-family: 'Playfair Display', serif;
+            font-size: 22px;
+            font-weight: 700;
+            line-height: 1.25;
+            margin-bottom: 10px;
+            color: var(--ink);
+        }
+
+        .summary {
+            font-size: 14px;
+            line-height: 1.7;
+            color: #3a3a4a;
+            margin-bottom: 12px;
+        }
+
+        .takeaway {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            background: var(--highlight-bg);
+            border-left: 3px solid var(--accent);
+            padding: 9px 12px;
+            border-radius: 0 3px 3px 0;
+        }
+
+        .takeaway-arrow {
+            font-weight: 700;
+            color: var(--accent);
+            font-size: 14px;
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+
+        .takeaway-text {
+            font-size: 13px;
+            font-weight: 500;
+            color: #3a2a1a;
+            line-height: 1.5;
+        }
+
+        /* DARK MODE */
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --ink: #f0ece4;
+                --paper: #16161e;
+                --rule: #2e2d3a;
+                --muted: #7a7888;
+                --highlight-bg: #1e1c2a;
+            }
+
+            .category-tag { background: #f0ece4; color: #16161e; }
+            .category-tag.medical { background: #2e6da4; color: #fff; }
+            .category-tag.breaking { background: var(--accent); color: #fff; }
+            .masthead { border-color: var(--rule); }
+            .section-ribbon { border-color: var(--rule); }
+        }
+
+        /* MOBILE */
+        @media (max-width: 640px) {
+            .masthead { padding: 20px 20px 14px; flex-direction: column; align-items: flex-start; }
+            .masthead-right { text-align: left; }
+            .masthead-title { font-size: 30px; }
+            .section-ribbon { padding: 6px 20px; }
+            .container { padding: 0 20px 40px; }
+            .item { grid-template-columns: 40px 1fr; gap: 0 12px; }
+            .headline { font-size: 18px; }
+        }
+
+        @media print {
+            .takeaway { background: #fef5ec; }
+        }
+    </style>
+</head>
+<body>
+
+<header class="masthead">
+    <div class="masthead-left">
+        <div class="edition-label">Daily Intelligence Briefing</div>
+        <div class="masthead-title">The Morning Read</div>
+    </div>
+    <div class="masthead-right">
+        <div class="masthead-date">Saturday, June 20, 2026</div>
+        <div>8 items • Personal Edition</div>
+    </div>
+</header>
+
+<nav class="section-ribbon">
+    <span>📅 Calendar</span>
+    <span>📧 Email</span>
+    <span>🌤️ Weather</span>
+    <span>🔴 News</span>
+    <span>✨ Quote</span>
+</nav>
+
+<main class="container">
+    
+    <article class="item">
+        <div class="item-emoji">📅</div>
+        <div class="item-body">
+            <div class="item-meta">
+                <span class="category-tag">Calendar</span>
+                <span class="source-time">Fri Jun 20 · 10:00 AM</span>
+            </div>
+            <h2 class="headline">Team Standup Meeting</h2>
+            <p class="summary">Conference Room B • 10:00 AM - 10:30 AM</p>
+        </div>
+    </article>
+    
+    <article class="item">
+        <div class="item-emoji">📧</div>
+        <div class="item-body">
+            <div class="item-meta">
+                <span class="category-tag">Email</span>
+                <span class="source-time">Gmail · Just now</span>
+            </div>
+            <h2 class="headline">3 Unread Messages</h2>
+            <p class="summary">• <strong>Project Update</strong> from Sarah Johnson<br>• <strong>Meeting Reminder</strong> from Alex Chen<br>• <strong>New Feature Launch</strong> from Product Team</p>
+        </div>
+    </article>
+    
+    <article class="item">
+        <div class="item-emoji">🌤️</div>
+        <div class="item-body">
+            <div class="item-meta">
+                <span class="category-tag">Weather</span>
+                <span class="source-time">San Francisco · Live</span>
+            </div>
+            <h2 class="headline">Current Conditions</h2>
+            <p class="summary"><strong>72°F</strong> — Partly Cloudy<br>Feels like 70°F • Humidity 65% • Wind 8 mph</p>
+        </div>
+    </article>
+    
+    <article class="item">
+        <div class="item-emoji">🔴</div>
+        <div class="item-body">
+            <div class="item-meta">
+                <span class="category-tag">Breaking</span>
+                <span class="source-time"><strong>Reuters</strong> · Today</span>
+            </div>
+            <h2 class="headline">Major Technology Breakthrough Announced</h2>
+            <div class="takeaway">
+                <span class="takeaway-arrow">→</span>
+                <span class="takeaway-text">Source: <strong>Reuters</strong></span>
+            </div>
+        </div>
+    </article>
+
+    <article class="item">
+        <div class="item-emoji">🟢</div>
+        <div class="item-body">
+            <div class="item-meta">
+                <span class="category-tag">Tech</span>
+                <span class="source-time"><strong>TechCrunch</strong> · Today</span>
+            </div>
+            <h2 class="headline">Startup Raises $50M in Series B Funding Round</h2>
+            <div class="takeaway">
+                <span class="takeaway-arrow">→</span>
+                <span class="takeaway-text">Source: <strong>TechCrunch</strong></span>
+            </div>
+        </div>
+    </article>
+
+    <article class="item">
+        <div class="item-emoji">💼</div>
+        <div class="item-body">
+            <div class="item-meta">
+                <span class="category-tag">Business</span>
+                <span class="source-time"><strong>Bloomberg</strong> · Today</span>
+            </div>
+            <h2 class="headline">Market Closes with Moderate Gains Across Indices</h2>
+            <div class="takeaway">
+                <span class="takeaway-arrow">→</span>
+                <span class="takeaway-text">Source: <strong>Bloomberg</strong></span>
+            </div>
+        </div>
+    </article>
+    
+    <article class="item">
+        <div class="item-emoji">✨</div>
+        <div class="item-body">
+            <div class="item-meta">
+                <span class="category-tag">Inspiration</span>
+                <span class="source-time">Daily Quote · Zenquotes</span>
+            </div>
+            <h2 class="headline" style="font-style: italic;">"The only way to do great work is to love what you do."</h2>
+            <p class="summary">— Steve Jobs</p>
+        </div>
+    </article>
+    
+</main>
+
+<footer style="border-top: 3px double var(--ink); margin: 0 48px; padding: 16px 0; display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: var(--muted);">
+    <span>📰 <strong style="color: var(--ink);">The Morning Read</strong> — Daily Briefing</span>
+    <span>Saturday, June 20, 2026 · Personal Edition</span>
+</footer>
+
+</body>
+</html>
