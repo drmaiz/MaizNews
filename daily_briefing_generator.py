@@ -21,466 +21,249 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Daily Briefing - {date}</title>
+    <title>Daily Briefing — {date}</title>
     <style>
-        * {{
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@700;800&display=swap');
+
+        * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+
+        :root {{
+            --ink: #1a1a2e;
+            --paper: #f7f6f2;
+            --accent: #c8102e;
+            --rule: #d4cfc8;
+            --muted: #7a7570;
+            --highlight-bg: #fff8f0;
+            --medical: #1a5276;
         }}
 
         body {{
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: var(--paper);
+            color: var(--ink);
             min-height: 100vh;
-            padding: 20px;
-            color: #2d3748;
         }}
 
+        /* MASTHEAD */
+        .masthead {{
+            border-bottom: 3px double var(--ink);
+            padding: 28px 48px 20px;
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            gap: 16px;
+        }}
+
+        .masthead-left {{ flex: 1; }}
+
+        .edition-label {{
+            font-size: 10px;
+            font-weight: 600;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: var(--accent);
+            margin-bottom: 4px;
+        }}
+
+        .masthead-title {{
+            font-family: 'Playfair Display', serif;
+            font-size: 42px;
+            font-weight: 800;
+            line-height: 1;
+            letter-spacing: -0.5px;
+        }}
+
+        .masthead-right {{
+            text-align: right;
+            font-size: 11px;
+            color: var(--muted);
+            line-height: 1.7;
+        }}
+
+        .masthead-date {{
+            font-weight: 600;
+            font-size: 13px;
+            color: var(--ink);
+        }}
+
+        /* SECTION RIBBON */
+        .section-ribbon {{
+            border-top: 1px solid var(--ink);
+            border-bottom: 1px solid var(--ink);
+            padding: 6px 48px;
+            display: flex;
+            gap: 24px;
+            overflow-x: auto;
+            font-size: 10px;
+            font-weight: 600;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            color: var(--muted);
+        }}
+
+        .section-ribbon span {{ white-space: nowrap; cursor: pointer; }}
+        .section-ribbon span:hover {{ color: var(--accent); }}
+
+        /* MAIN LAYOUT */
         .container {{
-            max-width: 700px;
+            max-width: 900px;
             margin: 0 auto;
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            overflow: hidden;
+            padding: 0 48px 60px;
         }}
 
-        .header {{
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 30px 25px;
+        /* NEWS ITEM */
+        .item {{
+            padding: 28px 0;
+            border-bottom: 1px solid var(--rule);
+            display: grid;
+            grid-template-columns: 56px 1fr;
+            gap: 0 20px;
+        }}
+
+        .item:last-child {{ border-bottom: none; }}
+
+        .item-emoji {{
+            font-size: 28px;
+            line-height: 1;
+            padding-top: 4px;
             text-align: center;
         }}
 
-        .header h1 {{
-            font-size: 28px;
+        .item-body {{ }}
+
+        .item-meta {{
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 6px;
+            flex-wrap: wrap;
+        }}
+
+        .category-tag {{
+            font-size: 9px;
             font-weight: 700;
-            margin-bottom: 8px;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            background: var(--ink);
+            color: #fff;
+            padding: 2px 8px;
+            border-radius: 2px;
         }}
 
-        .header .date {{
-            font-size: 14px;
-            opacity: 0.9;
-            font-weight: 300;
+        .category-tag.medical {{ background: var(--medical); }}
+        .category-tag.breaking {{ background: var(--accent); }}
+
+        .source-time {{
+            font-size: 11px;
+            color: var(--muted);
         }}
 
-        .divider {{
-            height: 3px;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
-        }}
+        .source-time strong {{ color: var(--ink); font-weight: 600; }}
 
-        .content {{
-            padding: 30px;
-        }}
-
-        /* Section Titles */
-        .section-title {{
-            font-size: 16px;
+        .headline {{
+            font-family: 'Playfair Display', serif;
+            font-size: 22px;
             font-weight: 700;
-            color: #667eea;
-            margin-top: 28px;
-            margin-bottom: 16px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+            line-height: 1.25;
+            margin-bottom: 10px;
+            color: var(--ink);
         }}
 
-        .section-title:first-child {{
-            margin-top: 0;
-        }}
-
-        .section-divider {{
-            height: 1px;
-            background: #e2e8f0;
-            margin: 24px 0;
-        }}
-
-        /* Calendar Section */
-        .calendar-table {{
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 16px;
+        .summary {{
             font-size: 14px;
-        }}
-
-        .calendar-table th {{
-            background: #f7fafc;
-            color: #667eea;
-            padding: 12px 8px;
-            text-align: left;
-            font-weight: 600;
-            font-size: 12px;
-            text-transform: uppercase;
-            border-bottom: 2px solid #e2e8f0;
-        }}
-
-        .calendar-table td {{
-            padding: 12px 8px;
-            border-bottom: 1px solid #e2e8f0;
-            color: #4a5568;
-        }}
-
-        .calendar-table tr:last-child td {{
-            border-bottom: none;
-        }}
-
-        .event-time {{
-            color: #718096;
-            font-size: 13px;
-            font-weight: 500;
-        }}
-
-        .event-title {{
-            color: #1a202c;
-            font-weight: 500;
-        }}
-
-        .event-location {{
-            color: #718096;
-            font-size: 13px;
-        }}
-
-        /* Email Section */
-        .email-summary {{
-            background: #f0f4ff;
-            border-left: 4px solid #667eea;
-            padding: 14px 16px;
-            border-radius: 4px;
+            line-height: 1.7;
+            color: #3a3a4a;
             margin-bottom: 12px;
         }}
 
-        .unread-count {{
-            font-size: 16px;
-            font-weight: 700;
-            color: #667eea;
-            margin-bottom: 8px;
-        }}
-
-        .email-list {{
-            list-style: none;
-            margin-top: 12px;
-        }}
-
-        .email-item {{
-            padding: 8px 0;
-            border-bottom: 1px solid #e2e8f0;
-            font-size: 13px;
-        }}
-
-        .email-item:last-child {{
-            border-bottom: none;
-        }}
-
-        .email-subject {{
-            color: #1a202c;
-            font-weight: 500;
-            margin-bottom: 2px;
-        }}
-
-        .email-from {{
-            color: #718096;
-            font-size: 12px;
-        }}
-
-        /* Weather Section */
-        .weather-card {{
-            background: linear-gradient(135deg, #ffd89b 0%, #19547b 100%);
-            color: white;
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 16px;
-        }}
-
-        .weather-temp {{
-            font-size: 32px;
-            font-weight: 700;
-            margin-bottom: 8px;
-        }}
-
-        .weather-condition {{
-            font-size: 16px;
-            opacity: 0.9;
-            margin-bottom: 12px;
-        }}
-
-        .weather-details {{
-            font-size: 13px;
-            opacity: 0.85;
-            line-height: 1.6;
-        }}
-
-        /* News Section */
-        .news-item {{
-            margin-bottom: 28px;
-            padding-bottom: 28px;
-            border-bottom: 1px solid #e2e8f0;
-            transition: all 0.3s ease;
-        }}
-
-        .news-item:last-child {{
-            border-bottom: none;
-            margin-bottom: 0;
-            padding-bottom: 0;
-        }}
-
-        .news-item:hover {{
-            transform: translateX(4px);
-            box-shadow: -3px 0 0 #667eea;
-        }}
-
-        .news-header {{
+        .takeaway {{
             display: flex;
             align-items: flex-start;
-            gap: 12px;
-            margin-bottom: 12px;
+            gap: 8px;
+            background: var(--highlight-bg);
+            border-left: 3px solid var(--accent);
+            padding: 9px 12px;
+            border-radius: 0 3px 3px 0;
         }}
 
-        .news-emoji {{
-            font-size: 24px;
-            min-width: 24px;
-        }}
-
-        .news-title {{
-            flex: 1;
-        }}
-
-        .news-category {{
-            display: inline-block;
-            background: #f7fafc;
-            color: #667eea;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 11px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 6px;
-        }}
-
-        .news-headline {{
-            font-size: 18px;
-            font-weight: 600;
-            color: #1a202c;
-            line-height: 1.4;
-            margin-bottom: 8px;
-        }}
-
-        .news-meta {{
-            display: flex;
-            gap: 16px;
-            font-size: 12px;
-            color: #718096;
-            margin-bottom: 12px;
-        }}
-
-        .news-source {{
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }}
-
-        .news-time {{
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }}
-
-        .news-summary {{
+        .takeaway-arrow {{
+            font-weight: 700;
+            color: var(--accent);
             font-size: 14px;
-            line-height: 1.6;
-            color: #4a5568;
-            margin-bottom: 12px;
+            flex-shrink: 0;
+            margin-top: 1px;
         }}
 
-        .news-takeaway {{
-            background: #f0f4ff;
-            border-left: 3px solid #667eea;
-            padding: 10px 12px;
-            border-radius: 4px;
+        .takeaway-text {{
             font-size: 13px;
-            color: #5a67d8;
             font-weight: 500;
+            color: #3a2a1a;
+            line-height: 1.5;
         }}
 
-        /* Quote Section */
-        .quote-section {{
-            background: #f7fafc;
-            padding: 24px;
-            border-radius: 8px;
-            text-align: center;
-            margin-bottom: 16px;
-        }}
-
-        .quote-text {{
-            font-size: 16px;
-            font-style: italic;
-            color: #2d3748;
-            margin-bottom: 12px;
-            line-height: 1.6;
-        }}
-
-        .quote-author {{
-            font-size: 13px;
-            color: #718096;
-            font-weight: 500;
-        }}
-
-        /* Footer */
-        .footer {{
-            background: #f7fafc;
-            padding: 20px;
-            text-align: center;
-            font-size: 12px;
-            color: #718096;
-            border-top: 1px solid #e2e8f0;
-        }}
-
-        /* Dark mode */
+        /* DARK MODE */
         @media (prefers-color-scheme: dark) {{
-            body {{
-                background: #1a202c;
+            :root {{
+                --ink: #f0ece4;
+                --paper: #16161e;
+                --rule: #2e2d3a;
+                --muted: #7a7888;
+                --highlight-bg: #1e1c2a;
             }}
 
-            .container {{
-                background: #2d3748;
-                color: #e2e8f0;
-            }}
-
-            .news-headline {{
-                color: #f7fafc;
-            }}
-
-            .event-title {{
-                color: #f7fafc;
-            }}
-
-            .news-category {{
-                background: rgba(102, 126, 234, 0.1);
-                color: #a0aec0;
-            }}
-
-            .news-summary {{
-                color: #cbd5e0;
-            }}
-
-            .news-takeaway {{
-                background: rgba(102, 126, 234, 0.15);
-                color: #bee3f8;
-            }}
-
-            .divider {{
-                background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
-            }}
-
-            .section-divider {{
-                background: #4a5568;
-            }}
-
-            .calendar-table th {{
-                background: #1a202c;
-                border-bottom-color: #4a5568;
-            }}
-
-            .calendar-table td {{
-                border-bottom-color: #4a5568;
-            }}
-
-            .calendar-table th {{
-                color: #a0aec0;
-            }}
-
-            .footer {{
-                background: #1a202c;
-                border-top-color: #4a5568;
-            }}
-
-            .email-summary {{
-                background: rgba(102, 126, 234, 0.1);
-            }}
-
-            .quote-section {{
-                background: #1a202c;
-                border: 1px solid #4a5568;
-            }}
-
-            .quote-text {{
-                color: #e2e8f0;
-            }}
+            .category-tag {{ background: #f0ece4; color: #16161e; }}
+            .category-tag.medical {{ background: #2e6da4; color: #fff; }}
+            .category-tag.breaking {{ background: var(--accent); color: #fff; }}
+            .masthead {{ border-color: var(--rule); }}
+            .section-ribbon {{ border-color: var(--rule); }}
         }}
 
-        /* Mobile responsive */
-        @media (max-width: 600px) {{
-            .container {{
-                border-radius: 0;
-            }}
-
-            .header {{
-                padding: 20px 15px;
-            }}
-
-            .header h1 {{
-                font-size: 24px;
-            }}
-
-            .content {{
-                padding: 20px;
-            }}
-
-            .news-headline {{
-                font-size: 16px;
-            }}
-
-            .news-item {{
-                margin-bottom: 20px;
-                padding-bottom: 20px;
-            }}
-
-            .calendar-table {{
-                font-size: 12px;
-            }}
-
-            .calendar-table th,
-            .calendar-table td {{
-                padding: 8px 4px;
-            }}
+        /* MOBILE */
+        @media (max-width: 640px) {{
+            .masthead {{ padding: 20px 20px 14px; flex-direction: column; align-items: flex-start; }}
+            .masthead-right {{ text-align: left; }}
+            .masthead-title {{ font-size: 30px; }}
+            .section-ribbon {{ padding: 6px 20px; }}
+            .container {{ padding: 0 20px 40px; }}
+            .item {{ grid-template-columns: 40px 1fr; gap: 0 12px; }}
+            .headline {{ font-size: 18px; }}
         }}
 
-        /* Print styles */
         @media print {{
-            body {{
-                background: white;
-                padding: 0;
-            }}
-
-            .container {{
-                box-shadow: none;
-                max-width: 100%;
-            }}
-
-            .news-item:hover {{
-                transform: none;
-                box-shadow: none;
-            }}
+            .takeaway {{ background: #fef5ec; }}
         }}
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>📰 Daily Briefing</h1>
-            <div class="date">{formatted_date}</div>
-        </div>
-        <div class="divider"></div>
 
-        <div class="content">
-            {sections}
-        </div>
-
-        <div class="footer">
-            <p>Stay informed • Curated daily • Last updated: {current_time}</p>
-        </div>
+<header class="masthead">
+    <div class="masthead-left">
+        <div class="edition-label">Daily Intelligence Briefing</div>
+        <div class="masthead-title">The Morning Read</div>
     </div>
+    <div class="masthead-right">
+        <div class="masthead-date">{formatted_date}</div>
+        <div>{item_count} items • Personal Edition</div>
+    </div>
+</header>
+
+<nav class="section-ribbon">
+    <span>📅 Calendar</span>
+    <span>📧 Email</span>
+    <span>🌤️ Weather</span>
+    <span>🔴 News</span>
+    <span>✨ Quote</span>
+</nav>
+
+<main class="container">
+    {sections}
+</main>
+
+<footer style="border-top: 3px double var(--ink); margin: 0 48px; padding: 16px 0; display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: var(--muted);">
+    <span>📰 <strong style="color: var(--ink);">The Morning Read</strong> — Daily Briefing</span>
+    <span>{formatted_date} · Personal Edition</span>
+</footer>
+
 </body>
 </html>
 """
@@ -507,131 +290,136 @@ def fmt_date(dt, all_day=False):
 
 
 def render_calendar_section(events):
-    """Render calendar events as HTML table"""
+    """Render calendar events in newspaper item format"""
     if not events:
-        return '<div class="section-title">📅 This Week\'s Events</div><p style="color: #718096; font-size: 14px;">No upcoming events</p>'
+        return ''
 
-    rows = ""
+    events_html = ""
     for event in events:
         day = fmt_date(event["start"], event["all_day"])
         time = fmt_time(event["start"], event["all_day"])
         title = event["summary"]
-        location = event["location"] or ""
+        location = event["location"] or "TBD"
 
-        rows += f"""
-        <tr>
-            <td class="event-time">{time}</td>
-            <td class="event-title">{title}</td>
-            <td class="event-location">{location}</td>
-        </tr>
+        summary = f"<strong>{day}</strong> at {time}<br>{location}" if not event["all_day"] else f"<strong>{day}</strong> (All day)<br>{location}"
+
+        events_html += f"""
+    <article class="item">
+        <div class="item-emoji">📅</div>
+        <div class="item-body">
+            <div class="item-meta">
+                <span class="category-tag">Calendar</span>
+                <span class="source-time">{day} · {time}</span>
+            </div>
+            <h2 class="headline">{title}</h2>
+            <p class="summary">{location}</p>
+        </div>
+    </article>
         """
 
-    table = f"""
-    <div class="section-title">📅 This Week's Events</div>
-    <table class="calendar-table">
-        <thead>
-            <tr>
-                <th style="width: 25%;">Time</th>
-                <th style="width: 50%;">Event</th>
-                <th style="width: 25%;">Location</th>
-            </tr>
-        </thead>
-        <tbody>
-            {rows}
-        </tbody>
-    </table>
-    """
-    return table
+    return events_html
 
 
 def render_email_section(unread_count, recent_emails):
-    """Render email summary section"""
-    email_items = ""
+    """Render email summary in newspaper item format"""
+    if not recent_emails and unread_count == 0:
+        return ''
+
+    email_list = ""
     if recent_emails:
-        for email in recent_emails[:5]:  # Limit to 5 most recent
+        for email in recent_emails[:3]:  # Limit to 3 most recent
             subject = email["subject"]
-            from_addr = email["from"]
-            email_items += f'''
-            <div class="email-item">
-                <div class="email-subject">{subject}</div>
-                <div class="email-from">from {from_addr}</div>
-            </div>
-            '''
+            from_addr = email["from"].split('<')[0].strip() if '<' in email["from"] else email["from"]
+            email_list += f"• <strong>{subject}</strong> from {from_addr}<br>"
+
+    summary = f"{unread_count} unread email{'s' if unread_count != 1 else ''}"
+    if email_list:
+        summary += f"<br><br>{email_list}"
 
     return f"""
-    <div class="section-title">📧 Email Summary</div>
-    <div class="email-summary">
-        <div class="unread-count">{unread_count} unread</div>
-        {'<ul class="email-list">' + email_items + '</ul>' if email_items else '<p style="color: #718096; font-size: 13px;">No unread emails</p>'}
-    </div>
+    <article class="item">
+        <div class="item-emoji">📧</div>
+        <div class="item-body">
+            <div class="item-meta">
+                <span class="category-tag">Email</span>
+                <span class="source-time">Gmail · Just now</span>
+            </div>
+            <h2 class="headline">{unread_count} Unread Messages</h2>
+            <p class="summary">{summary}</p>
+        </div>
+    </article>
     """
 
 
 def render_weather_section(weather):
-    """Render weather section"""
+    """Render weather section in newspaper item format"""
+    summary = f"""<strong>{weather['temp']}°F</strong> — {weather['condition']}<br>
+Feels like {weather['feels_like']}°F • Humidity {weather['humidity']}% • Wind {weather['wind']} mph"""
+
     return f"""
-    <div class="section-title">🌤️ Weather</div>
-    <div class="weather-card">
-        <div class="weather-temp">{weather['temp']}°F</div>
-        <div class="weather-condition">{weather['condition']}</div>
-        <div class="weather-details">
-            Feels like {weather['feels_like']}°F<br>
-            Humidity {weather['humidity']}% • Wind {weather['wind']} mph
+    <article class="item">
+        <div class="item-emoji">🌤️</div>
+        <div class="item-body">
+            <div class="item-meta">
+                <span class="category-tag">Weather</span>
+                <span class="source-time">{weather['city']} · Live</span>
+            </div>
+            <h2 class="headline">Current Conditions</h2>
+            <p class="summary">{summary}</p>
         </div>
-    </div>
+    </article>
     """
 
 
 def render_news_section(headlines):
-    """Render news items in daily briefing format"""
+    """Render news items in newspaper format"""
     if not headlines:
-        return '<div class="section-title">🔴 Top News</div><p style="color: #718096; font-size: 14px;">No news available</p>'
+        return ''
 
     news_items = ""
     for i, article in enumerate(headlines, 1):
-        # Simplified formatting - in production you'd fetch more details
         emoji = ["🔴", "🟢", "💼", "🌍", "🏛️", "📊", "🎯"][i % 7]
         category = ["Breaking", "Tech", "Business", "Global", "Politics", "Science", "Trending"][i % 7]
-        headline = article["title"][:80]  # Limit headline
+        headline = article["title"][:100]
         source = article["source"]
-        time_text = "Today"
 
-        # Simple summary (would be enhanced in production with full article fetch)
-        summary = f"Source: {source}"
+        # Create a simple takeaway from source
+        takeaway = f"Source: <strong>{source}</strong>"
 
         news_items += f"""
-        <div class="news-item">
-            <div class="news-header">
-                <div class="news-emoji">{emoji}</div>
-                <div class="news-title">
-                    <div class="news-category">{category}</div>
-                    <div class="news-headline">{headline}</div>
-                    <div class="news-meta">
-                        <div class="news-source">📰 {source}</div>
-                        <div class="news-time">⏱️ {time_text}</div>
-                    </div>
-                </div>
+    <article class="item">
+        <div class="item-emoji">{emoji}</div>
+        <div class="item-body">
+            <div class="item-meta">
+                <span class="category-tag">{category}</span>
+                <span class="source-time"><strong>{source}</strong> · Today</span>
             </div>
-            <div class="news-summary">{summary}</div>
+            <h2 class="headline">{headline}</h2>
+            <div class="takeaway">
+                <span class="takeaway-arrow">→</span>
+                <span class="takeaway-text">{takeaway}</span>
+            </div>
         </div>
+    </article>
         """
 
-    return f"""
-    <div class="section-divider"></div>
-    <div class="section-title">🔴 Top News</div>
-    {news_items}
-    """
+    return news_items
 
 
 def render_quote_section(quote):
-    """Render quote of the day section"""
+    """Render quote of the day in newspaper format"""
     return f"""
-    <div class="section-divider"></div>
-    <div class="section-title">✨ Quote of the Day</div>
-    <div class="quote-section">
-        <div class="quote-text">"{quote['text']}"</div>
-        <div class="quote-author">— {quote['author']}</div>
-    </div>
+    <article class="item">
+        <div class="item-emoji">✨</div>
+        <div class="item-body">
+            <div class="item-meta">
+                <span class="category-tag">Inspiration</span>
+                <span class="source-time">Daily Quote · Zenquotes</span>
+            </div>
+            <h2 class="headline" style="font-style: italic;">"{quote['text']}"</h2>
+            <p class="summary">— {quote['author']}</p>
+        </div>
+    </article>
     """
 
 
@@ -720,11 +508,15 @@ def generate_html(data):
 
     sections = calendar_html + email_html + weather_html + news_html + quote_html
 
+    # Count items for masthead
+    item_count = len([x for x in [calendar_html, email_html, weather_html, news_html, quote_html] if x])
+
     # Generate complete HTML
     html = HTML_TEMPLATE.format(
         date=formatted_date,
         formatted_date=formatted_date,
         current_time=current_time,
+        item_count=item_count,
         sections=sections,
     )
 
