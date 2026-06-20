@@ -4,3 +4,8 @@ token.pickle
 credentials.json
 .cache/
 test_*.py
+
+# Generated daily briefing files (created fresh each day)
+daily-briefing-*.html
+test_*.py
+.cache/
