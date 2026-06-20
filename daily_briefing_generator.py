@@ -290,6 +290,42 @@ def fmt_date(dt, all_day=False):
     return local.strftime("%a %b %d").lstrip("0").replace(" 0", " ")
 
 
+def format_relative_time(published_at: str) -> str:
+    """Convert ISO timestamp to brief relative label used in source-time line."""
+    if not published_at:
+        return "Today"
+
+    try:
+        dt = datetime.fromisoformat(published_at)
+    except Exception:
+        return "Today"
+
+    # Normalize to local naive for subtraction if needed
+    now = datetime.now(dt.tzinfo) if dt.tzinfo else datetime.now()
+    delta = now - dt
+
+    seconds = int(delta.total_seconds())
+    if seconds < 0:
+        return "Today"
+
+    if seconds < 3600:
+        mins = max(1, seconds // 60)
+        return f"{mins}m ago"
+
+    if seconds < 86400:
+        hrs = seconds // 3600
+        return f"{hrs}h ago"
+
+    if seconds < 172800:
+        return "Yesterday"
+
+    days = seconds // 86400
+    if days <= 6:
+        return f"{days}d ago"
+
+    return dt.strftime("%b %d")
+
+
 def render_calendar_section(events):
     """Render calendar events in a week-view schedule format (single item)."""
     if not events:
@@ -395,20 +431,35 @@ def render_news_section(headlines):
     if not headlines:
         return ''
 
+    category_to_emoji = {
+        "Breaking": "🔴",
+        "Tech & AI": "🟢",
+        "Markets": "💼",
+        "Global": "🌍",
+        "Politics": "🏛️",
+        "Science": "📊",
+        "Trending": "🎯",
+        "Global Health": "🧬",
+    }
+
     parts = []
     for i, article in enumerate(headlines, 1):
-        emoji = ["🔴", "🟢", "💼", "🌍", "🏛️", "📊", "🎯"][i % 7]
         # prefer category from article if provided
         category = article.get("category") or ["Breaking", "Tech & AI", "Markets", "Global", "Politics", "Science", "Trending"][i % 7]
+        emoji = category_to_emoji.get(category, ["🔴", "🟢", "💼", "🌍", "🏛️", "📊", "🎯"][i % 7])
+
         headline = article.get("title", "(No title)")
-        source = article.get("source", "")
+        source = (article.get("source") or "Unknown").strip()
+
         # try multiple keys for a summary/description
         summary_text = article.get("description") or article.get("summary") or article.get("snippet") or article.get("content") or ''
         if len(summary_text) > 400:
             summary_text = summary_text[:397] + '...'
 
-        takeaway = f"Source: <strong>{source}</strong>"
+        published_label = format_relative_time(article.get("published_at", ""))
+        source_time = f"<strong>{source}</strong> · {published_label}"
 
+        takeaway = f"Source: <strong>{source}</strong>"
         summary_html = f"<p class=\"summary\">{summary_text}</p>" if summary_text else ""
 
         parts.append(f"""
@@ -417,7 +468,7 @@ def render_news_section(headlines):
         <div class=\"item-body\">
             <div class=\"item-meta\">
                 <span class=\"category-tag\">{category}</span>
-                <span class=\"source-time\"><strong>{source}</strong> · Today</span>
+                <span class=\"source-time\">{source_time}</span>
             </div>
             <h2 class=\"headline\">{headline}</h2>
             {summary_html}
