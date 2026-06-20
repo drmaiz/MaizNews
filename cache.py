@@ -2,6 +2,7 @@ import json
 import os
 import time
 from pathlib import Path
+from datetime import datetime
 
 CACHE_DIR = ".cache"
 CACHE_EXPIRY = {
@@ -11,6 +12,29 @@ CACHE_EXPIRY = {
     "news": 21600,           # 6 hours
     "quote": 86400,          # 24 hours
 }
+
+
+def _deserialize_datetimes(obj):
+    """Recursively convert ISO datetime strings back to datetime objects"""
+    if isinstance(obj, dict):
+        for key, value in obj.items():
+            if isinstance(value, str):
+                try:
+                    obj[key] = datetime.fromisoformat(value)
+                except (ValueError, TypeError):
+                    pass
+            elif isinstance(value, (dict, list)):
+                obj[key] = _deserialize_datetimes(value)
+    elif isinstance(obj, list):
+        for i, item in enumerate(obj):
+            if isinstance(item, str):
+                try:
+                    obj[i] = datetime.fromisoformat(item)
+                except (ValueError, TypeError):
+                    pass
+            elif isinstance(item, (dict, list)):
+                obj[i] = _deserialize_datetimes(item)
+    return obj
 
 
 def _ensure_cache_dir():
@@ -32,7 +56,8 @@ def get_cached_data(data_type, max_age_seconds=None):
         age = time.time() - os.path.getmtime(cache_file)
         if age < max_age_seconds:
             with open(cache_file, "r") as f:
-                return json.load(f)
+                data = json.load(f)
+                return _deserialize_datetimes(data)
     except (IOError, json.JSONDecodeError):
         pass
 
