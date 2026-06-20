@@ -1,6 +1,6 @@
+credentials.json
+token.pickle
+.cache/
+daily-briefing-*.html
 __pycache__/
 *.pyc
-token.pickle
-credentials.json
-.cache/
-test_*.py
