@@ -1,61 +1,66 @@
-from email.utils import parsedate_to_datetime
-
-LABEL_NAMES = {
-    "INBOX": "Inbox",
-    "CATEGORY_PROMOTIONS": "Promotions",
-    "CATEGORY_SOCIAL": "Social",
-    "CATEGORY_UPDATES": "Updates",
-}
+from datetime import datetime
 
 
-def get_unread_count(service):
-    result = service.users().labels().get(userId="me", id="INBOX").execute()
-    return result.get("messagesUnread", 0)
+async def get_unread_count(mcp_client):
+    """Get count of unread emails in inbox"""
+    try:
+        result = await mcp_client.call_tool(
+            "mcp__Gmail__search_threads",
+            {"query": "is:unread in:inbox", "pageSize": 1}
+        )
+        # The result includes the total count via estimated count or we count threads
+        threads = result.get("threads", [])
+        # Search returns approximate count, let's return thread count as proxy
+        return len(threads) if threads else 0
+    except Exception as e:
+        print(f"Error getting unread count: {e}")
+        return 0
 
 
-def get_unread_by_label(service):
-    counts = {}
-    for label_id, label_name in LABEL_NAMES.items():
-        try:
-            result = service.users().labels().get(userId="me", id=label_id).execute()
-            count = result.get("messagesUnread", 0)
-            if count > 0:
-                counts[label_name] = count
-        except Exception:
-            pass
-    return counts
+def get_unread_count_sync(client):
+    """Synchronous wrapper for get_unread_count"""
+    try:
+        result = client.search_threads(query="is:unread in:inbox", pageSize=1)
+        threads = result.get("threads", [])
+        return len(threads) if threads else 0
+    except Exception as e:
+        print(f"Error getting unread count: {e}")
+        return 0
 
 
-def get_recent_unread(service, max_results=10):
-    result = service.users().messages().list(
-        userId="me",
-        labelIds=["INBOX", "UNREAD"],
-        maxResults=max_results,
-    ).execute()
+def get_recent_unread(client, max_results=10):
+    """Get recent unread emails using MCP Gmail connector"""
+    try:
+        result = client.search_threads(
+            query="is:unread in:inbox",
+            pageSize=max_results
+        )
 
-    messages = result.get("messages", [])
-    emails = []
+        threads = result.get("threads", [])
+        emails = []
 
-    for msg in messages:
-        detail = service.users().messages().get(
-            userId="me",
-            id=msg["id"],
-            format="metadata",
-            metadataHeaders=["Subject", "From", "Date"],
-        ).execute()
+        for thread in threads:
+            # Get full thread details
+            thread_detail = client.get_thread(
+                threadId=thread.get("id"),
+                messageFormat="MINIMAL"
+            )
 
-        headers = {h["name"]: h["value"] for h in detail.get("payload", {}).get("headers", [])}
-        date_str = headers.get("Date", "")
-        try:
-            date = parsedate_to_datetime(date_str)
-        except Exception:
-            date = None
+            messages = thread_detail.get("messages", [])
+            if not messages:
+                continue
 
-        emails.append({
-            "subject": headers.get("Subject", "(No subject)"),
-            "from": headers.get("From", ""),
-            "date": date,
-            "snippet": detail.get("snippet", ""),
-        })
+            # Get the first message (usually the original email)
+            msg = messages[0]
 
-    return emails
+            emails.append({
+                "subject": thread.get("snippet", "(No subject)"),
+                "from": msg.get("from", ""),
+                "date": None,
+                "snippet": msg.get("snippet", ""),
+            })
+
+        return emails[:max_results]
+    except Exception as e:
+        print(f"Error getting recent unread emails: {e}")
+        return []

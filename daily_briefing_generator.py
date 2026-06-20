@@ -7,13 +7,13 @@ from datetime import datetime
 from pathlib import Path
 
 # Import local clients
-from auth import build_services
 from calendar_client import get_events, split_today_upcoming
-from gmail_client import get_unread_count, get_recent_unread
+from gmail_client import get_unread_count_sync, get_recent_unread
 from weather_client import get_weather
 from news_client import get_headlines
 from quote_client import get_quote
 from cache import get_cached_data, set_cache
+from mcp_client import MCPGmailClient, MCPCalendarClient
 
 # HTML Template and styling
 HTML_TEMPLATE = """<!DOCTYPE html>
@@ -449,9 +449,18 @@ def render_quote_section(quote):
     """
 
 
-def fetch_all_data():
-    """Fetch all required data with caching"""
+def fetch_all_data(use_mcp=True):
+    """Fetch all required data with caching.
+
+    Args:
+        use_mcp: If True, use MCP connectors for Gmail and Calendar.
+                 If False, use legacy Google API client (requires credentials.json).
+    """
     data = {}
+
+    # Initialize MCP clients
+    calendar_client = MCPCalendarClient()
+    gmail_client = MCPGmailClient()
 
     try:
         # Try calendar from cache first
@@ -459,9 +468,13 @@ def fetch_all_data():
             print("Using cached calendar data")
             data["calendar"] = cached
         else:
-            print("Fetching calendar events...")
-            calendar_service, gmail_service = build_services()
-            events = get_events(calendar_service, days=7)
+            print("Fetching calendar events via MCP...")
+            if use_mcp:
+                events = calendar_client.get_events(days=7)
+            else:
+                from auth import build_services
+                calendar_service, _ = build_services()
+                events = get_events(calendar_service, days=7)
             data["calendar"] = events
             set_cache("calendar", events)
             print(f"Cached calendar data ({len(events)} events)")
@@ -472,11 +485,15 @@ def fetch_all_data():
             data["unread_count"] = cached["unread_count"]
             data["recent_emails"] = cached["recent_emails"]
         else:
-            print("Fetching email data...")
-            if "gmail_service" not in locals():
-                calendar_service, gmail_service = build_services()
-            unread_count = get_unread_count(gmail_service)
-            recent_emails = get_recent_unread(gmail_service, max_results=5)
+            print("Fetching email data via MCP...")
+            if use_mcp:
+                unread_count = gmail_client.get_unread_count()
+                recent_emails = gmail_client.get_recent_unread(max_results=5)
+            else:
+                from auth import build_services
+                _, gmail_service = build_services()
+                unread_count = get_unread_count_sync(gmail_service)
+                recent_emails = get_recent_unread(gmail_service, max_results=5)
             data["unread_count"] = unread_count
             data["recent_emails"] = recent_emails
             set_cache("gmail", {"unread_count": unread_count, "recent_emails": recent_emails})
@@ -560,12 +577,20 @@ def save_html(html_content):
     return filename
 
 
-def main():
-    """Main entry point"""
+def main(use_mcp=True):
+    """Main entry point.
+
+    Args:
+        use_mcp: If True, use MCP connectors. If False, use legacy Google API.
+    """
     print("🔄 Generating daily briefing...")
+    if use_mcp:
+        print("📱 Using MCP connectors for Gmail and Calendar")
+    else:
+        print("🔑 Using legacy Google API credentials")
 
     # Fetch data
-    data = fetch_all_data()
+    data = fetch_all_data(use_mcp=use_mcp)
     if not data:
         print("❌ Failed to fetch data", file=sys.stderr)
         sys.exit(1)

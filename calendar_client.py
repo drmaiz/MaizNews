@@ -1,42 +1,49 @@
 from datetime import datetime, timezone, timedelta
 
 
-def get_events(service, days=7):
-    now = datetime.now(timezone.utc)
-    end = now + timedelta(days=days)
+def get_events(client, days=7):
+    """Get calendar events using MCP Google Calendar connector"""
+    try:
+        now = datetime.now(timezone.utc)
+        end = now + timedelta(days=days)
 
-    result = service.events().list(
-        calendarId="primary",
-        timeMin=now.isoformat(),
-        timeMax=end.isoformat(),
-        maxResults=50,
-        singleEvents=True,
-        orderBy="startTime",
-    ).execute()
+        result = client.list_events(
+            calendarId="primary",
+            startTime=now.isoformat(),
+            endTime=end.isoformat(),
+            pageSize=50,
+            orderBy="startTime",
+        )
 
-    events = []
-    for item in result.get("items", []):
-        start_raw = item["start"].get("dateTime") or item["start"].get("date")
-        end_raw = item["end"].get("dateTime") or item["end"].get("date")
+        events = []
+        for item in result.get("events", []):
+            start_raw = item.get("start", {}).get("dateTime") or item.get("start", {}).get("date")
+            end_raw = item.get("end", {}).get("dateTime") or item.get("end", {}).get("date")
 
-        # All-day events have date strings, not datetimes
-        all_day = "dateTime" not in item["start"]
-        if all_day:
-            start_dt = datetime.fromisoformat(start_raw)
-            end_dt = datetime.fromisoformat(end_raw)
-        else:
-            start_dt = datetime.fromisoformat(start_raw)
-            end_dt = datetime.fromisoformat(end_raw)
+            if not start_raw:
+                continue
 
-        events.append({
-            "summary": item.get("summary", "(No title)"),
-            "start": start_dt,
-            "end": end_dt,
-            "all_day": all_day,
-            "location": item.get("location", ""),
-        })
+            # All-day events have date strings, not datetimes
+            all_day = "dateTime" not in item.get("start", {})
+            try:
+                start_dt = datetime.fromisoformat(start_raw.replace('Z', '+00:00'))
+                end_dt = datetime.fromisoformat(end_raw.replace('Z', '+00:00'))
+            except:
+                start_dt = datetime.fromisoformat(start_raw)
+                end_dt = datetime.fromisoformat(end_raw)
 
-    return events
+            events.append({
+                "summary": item.get("summary", "(No title)"),
+                "start": start_dt,
+                "end": end_dt,
+                "all_day": all_day,
+                "location": item.get("location", ""),
+            })
+
+        return events
+    except Exception as e:
+        print(f"Error getting calendar events: {e}")
+        return []
 
 
 def split_today_upcoming(events):
