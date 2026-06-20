@@ -243,7 +243,8 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     </div>
     <div class="masthead-right">
         <div class="masthead-date">{formatted_date}</div>
-        <div>{item_count} items • Personal Edition</div>
+        <div>Personal Edition · Curated for You</div>
+        <div style="font-size: 10px; margin-top: 4px;">Last updated: {current_time}</div>
     </div>
 </header>
 
@@ -290,34 +291,40 @@ def fmt_date(dt, all_day=False):
 
 
 def render_calendar_section(events):
-    """Render calendar events in newspaper item format"""
+    """Render calendar events in a week-view schedule format (single item)."""
     if not events:
         return ''
 
-    events_html = ""
+    # Build a single article with a weekly schedule listing
+    parts = []
     for event in events:
         day = fmt_date(event["start"], event["all_day"])
         time = fmt_time(event["start"], event["all_day"])
-        title = event["summary"]
-        location = event["location"] or "TBD"
+        title = event.get("summary", "(No title)")
+        location = event.get("location") or "TBD"
 
-        summary = f"<strong>{day}</strong> at {time}<br>{location}" if not event["all_day"] else f"<strong>{day}</strong> (All day)<br>{location}"
+        if event.get("all_day"):
+            parts.append(f'<div style="margin-bottom: 14px;"><strong>{day}</strong><br>&nbsp;&nbsp;• All day • {title} — {location}<br></div>')
+        else:
+            parts.append(f'<div style="margin-bottom: 14px;"><strong>{day}</strong><br>&nbsp;&nbsp;• {time} • {location} — {title}<br></div>')
 
-        events_html += f"""
+    events_html = "".join(parts)
+
+    return f"""
     <article class="item">
         <div class="item-emoji">📅</div>
         <div class="item-body">
             <div class="item-meta">
                 <span class="category-tag">Calendar</span>
-                <span class="source-time">{day} · {time}</span>
+                <span class="source-time">Week View · Next 7 Days</span>
             </div>
-            <h2 class="headline">{title}</h2>
-            <p class="summary">{location}</p>
+            <h2 class="headline">This Week's Schedule</h2>
+            <div style="margin-top: 12px;">
+{events_html}
+            </div>
         </div>
     </article>
         """
-
-    return events_html
 
 
 def render_email_section(unread_count, recent_emails):
@@ -325,16 +332,28 @@ def render_email_section(unread_count, recent_emails):
     if not recent_emails and unread_count == 0:
         return ''
 
-    email_list = ""
+    items = []
     if recent_emails:
-        for email in recent_emails[:3]:  # Limit to 3 most recent
-            subject = email["subject"]
-            from_addr = email["from"].split('<')[0].strip() if '<' in email["from"] else email["from"]
-            email_list += f"• <strong>{subject}</strong> from {from_addr}<br>"
+        for email in recent_emails[:5]:  # Show up to 5 recent
+            subject = email.get("subject", "(No subject)")
+            from_addr = email.get("from", "")
+            # extract name if present
+            if '<' in from_addr:
+                from_display = from_addr.split('<')[0].strip()
+            else:
+                from_display = from_addr
+            snippet = email.get("snippet") or ''
+            # truncate snippet to ~140 chars
+            if len(snippet) > 140:
+                snippet = snippet[:137] + '...'
+            if snippet:
+                items.append(f'• <strong>{subject}</strong> from {from_display}<br>&nbsp;&nbsp;<em style="color: #7a7570;">"{snippet}"</em><br>')
+            else:
+                items.append(f'• <strong>{subject}</strong> from {from_display}<br>')
 
-    summary = f"{unread_count} unread email{'s' if unread_count != 1 else ''}"
-    if email_list:
-        summary += f"<br><br>{email_list}"
+    summary = f"<strong>{unread_count}</strong> unread message{'s' if unread_count != 1 else ''}"
+    if items:
+        summary += "<br><br>" + "".join(items)
 
     return f"""
     <article class="item">
@@ -342,7 +361,7 @@ def render_email_section(unread_count, recent_emails):
         <div class="item-body">
             <div class="item-meta">
                 <span class="category-tag">Email</span>
-                <span class="source-time">Gmail · Just now</span>
+                <span class="source-time">Gmail · Recent</span>
             </div>
             <h2 class="headline">{unread_count} Unread Messages</h2>
             <p class="summary">{summary}</p>
@@ -372,38 +391,45 @@ Feels like {weather['feels_like']}°F • Humidity {weather['humidity']}% • Wi
 
 
 def render_news_section(headlines):
-    """Render news items in newspaper format"""
+    """Render news items in newspaper format with a short summary when available"""
     if not headlines:
         return ''
 
-    news_items = ""
+    parts = []
     for i, article in enumerate(headlines, 1):
         emoji = ["🔴", "🟢", "💼", "🌍", "🏛️", "📊", "🎯"][i % 7]
-        category = ["Breaking", "Tech", "Business", "Global", "Politics", "Science", "Trending"][i % 7]
-        headline = article["title"][:100]
-        source = article["source"]
+        # prefer category from article if provided
+        category = article.get("category") or ["Breaking", "Tech & AI", "Markets", "Global", "Politics", "Science", "Trending"][i % 7]
+        headline = article.get("title", "(No title)")
+        source = article.get("source", "")
+        # try multiple keys for a summary/description
+        summary_text = article.get("description") or article.get("summary") or article.get("snippet") or article.get("content") or ''
+        if len(summary_text) > 400:
+            summary_text = summary_text[:397] + '...'
 
-        # Create a simple takeaway from source
         takeaway = f"Source: <strong>{source}</strong>"
 
-        news_items += f"""
-    <article class="item">
-        <div class="item-emoji">{emoji}</div>
-        <div class="item-body">
-            <div class="item-meta">
-                <span class="category-tag">{category}</span>
-                <span class="source-time"><strong>{source}</strong> · Today</span>
+        summary_html = f"<p class=\"summary\">{summary_text}</p>" if summary_text else ""
+
+        parts.append(f"""
+    <article class=\"item\">
+        <div class=\"item-emoji\">{emoji}</div>
+        <div class=\"item-body\">
+            <div class=\"item-meta\">
+                <span class=\"category-tag\">{category}</span>
+                <span class=\"source-time\"><strong>{source}</strong> · Today</span>
             </div>
-            <h2 class="headline">{headline}</h2>
-            <div class="takeaway">
-                <span class="takeaway-arrow">→</span>
-                <span class="takeaway-text">{takeaway}</span>
+            <h2 class=\"headline\">{headline}</h2>
+            {summary_html}
+            <div class=\"takeaway\">
+                <span class=\"takeaway-arrow\">→</span>
+                <span class=\"takeaway-text\">{takeaway}</span>
             </div>
         </div>
     </article>
-        """
+        """)
 
-    return news_items
+    return "".join(parts)
 
 
 def render_quote_section(quote):
@@ -429,7 +455,7 @@ def fetch_all_data():
 
     try:
         # Try calendar from cache first
-        if cached := get_cached_data("calendar"):
+        if (cached := get_cached_data("calendar")) is not None:
             print("Using cached calendar data")
             data["calendar"] = cached
         else:
@@ -441,7 +467,7 @@ def fetch_all_data():
             print(f"Cached calendar data ({len(events)} events)")
 
         # Gmail data
-        if cached := get_cached_data("gmail"):
+        if (cached := get_cached_data("gmail")) is not None:
             print("Using cached email data")
             data["unread_count"] = cached["unread_count"]
             data["recent_emails"] = cached["recent_emails"]
@@ -457,7 +483,7 @@ def fetch_all_data():
             print(f"Cached email data ({unread_count} unread)")
 
         # Weather
-        if cached := get_cached_data("weather"):
+        if (cached := get_cached_data("weather")) is not None:
             print("Using cached weather data")
             data["weather"] = cached
         else:
@@ -467,7 +493,7 @@ def fetch_all_data():
             print("Cached weather data")
 
         # News
-        if cached := get_cached_data("news"):
+        if (cached := get_cached_data("news")) is not None:
             print("Using cached news data")
             data["headlines"] = cached
         else:
@@ -477,7 +503,7 @@ def fetch_all_data():
             print(f"Cached news data ({len(data['headlines'])} headlines)")
 
         # Quote
-        if cached := get_cached_data("quote"):
+        if (cached := get_cached_data("quote")) is not None:
             print("Using cached quote data")
             data["quote"] = cached
         else:
@@ -497,18 +523,18 @@ def generate_html(data):
     """Generate complete HTML file from data"""
     now = datetime.now()
     formatted_date = now.strftime("%A, %B %d, %Y")
-    current_time = now.strftime("%I:%M %p")
+    current_time = now.strftime("%I:%M %p").lstrip("0")
 
     # Render all sections
-    calendar_html = render_calendar_section(data["calendar"])
-    email_html = render_email_section(data["unread_count"], data["recent_emails"])
-    weather_html = render_weather_section(data["weather"])
-    news_html = render_news_section(data["headlines"])
-    quote_html = render_quote_section(data["quote"])
+    calendar_html = render_calendar_section(data["calendar"]) if data.get("calendar") is not None else ''
+    email_html = render_email_section(data.get("unread_count", 0), data.get("recent_emails", []))
+    weather_html = render_weather_section(data["weather"]) if data.get("weather") is not None else ''
+    news_html = render_news_section(data.get("headlines", []))
+    quote_html = render_quote_section(data.get("quote", {"text":"","author":""}))
 
     sections = calendar_html + email_html + weather_html + news_html + quote_html
 
-    # Count items for masthead
+    # Count items for masthead (kept for compatibility but not displayed in template)
     item_count = len([x for x in [calendar_html, email_html, weather_html, news_html, quote_html] if x])
 
     # Generate complete HTML
@@ -528,7 +554,7 @@ def save_html(html_content):
     now = datetime.now()
     filename = f"daily-briefing-{now.strftime('%Y-%m-%d')}.html"
 
-    with open(filename, "w") as f:
+    with open(filename, "w", encoding="utf-8") as f:
         f.write(html_content)
 
     return filename
