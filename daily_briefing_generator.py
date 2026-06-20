@@ -3,8 +3,17 @@
 
 import sys
 import os
+import re
 from datetime import datetime
+from html import escape
 from pathlib import Path
+
+# Runtime/config toggles
+STRICT_CLASSIC_LAYOUT = True
+NEWS_FETCH_POOL = 20
+NEWS_MAX = 8
+NEWS_PER_SOURCE_CAP = 2
+FIXED_SOURCES_LABEL = "Gmail · Google Calendar · Weather · Medical News"
 
 # Import local clients
 from auth import build_services
@@ -201,6 +210,44 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             line-height: 1.5;
         }}
 
+        /* MEDICAL CALLOUT */
+        .medical-callout {{
+            background: #eaf2fb;
+            border-left: 3px solid var(--medical);
+            padding: 9px 12px;
+            border-radius: 0 3px 3px 0;
+            margin-bottom: 12px;
+        }}
+
+        .medical-callout-label {{
+            font-size: 9px;
+            font-weight: 700;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            color: var(--medical);
+            margin-bottom: 3px;
+        }}
+
+        .medical-callout-text {{
+            font-size: 12px;
+            color: #1a3a5a;
+            line-height: 1.5;
+        }}
+
+        /* FOOTER */
+        footer {{
+            border-top: 3px double var(--ink);
+            margin: 0 48px;
+            padding: 16px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 11px;
+            color: var(--muted);
+        }}
+
+        footer strong {{ color: var(--ink); }}
+
         /* DARK MODE */
         @media (prefers-color-scheme: dark) {{
             :root {{
@@ -214,8 +261,11 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             .category-tag {{ background: #f0ece4; color: #16161e; }}
             .category-tag.medical {{ background: #2e6da4; color: #fff; }}
             .category-tag.breaking {{ background: var(--accent); color: #fff; }}
+            .medical-callout {{ background: #0d1f2e; }}
+            .medical-callout-text {{ color: #9dc3e6; }}
             .masthead {{ border-color: var(--rule); }}
             .section-ribbon {{ border-color: var(--rule); }}
+            footer {{ border-color: var(--rule); }}
         }}
 
         /* MOBILE */
@@ -227,6 +277,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             .container {{ padding: 0 20px 40px; }}
             .item {{ grid-template-columns: 40px 1fr; gap: 0 12px; }}
             .headline {{ font-size: 18px; }}
+            footer {{ margin: 0 20px; flex-direction: column; gap: 6px; text-align: center; }}
         }}
 
         @media print {{
@@ -243,26 +294,23 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     </div>
     <div class="masthead-right">
         <div class="masthead-date">{formatted_date}</div>
-        <div>Personal Edition · Curated for You</div>
-        <div style="font-size: 10px; margin-top: 4px;">Last updated: {current_time}</div>
+        <div>{story_summary}</div>
+        <div style="font-size: 10px; margin-top: 4px;">Sources: {sources}</div>
     </div>
 </header>
 
 <nav class="section-ribbon">
-    <span>📅 Calendar</span>
-    <span>📧 Email</span>
-    <span>🌤️ Weather</span>
-    <span>🔴 News</span>
-    <span>✨ Quote</span>
+    {nav_sections}
 </nav>
 
 <main class="container">
     {sections}
 </main>
 
-<footer style="border-top: 3px double var(--ink); margin: 0 48px; padding: 16px 0; display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: var(--muted);">
-    <span>📰 <strong style="color: var(--ink);">The Morning Read</strong> — Daily Briefing</span>
-    <span>{formatted_date} · Personal Edition</span>
+<footer>
+    <span>📰 <strong>The Morning Read</strong> — Daily Briefing</span>
+    <span>{formatted_date} · {location} Edition</span>
+    <span>Sources: {sources}</span>
 </footer>
 
 </body>
@@ -271,11 +319,9 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 
 
 def fmt_time(dt, all_day):
-    """Format datetime to readable time string"""
     if all_day:
         return "All day"
     local = dt.astimezone()
-    # Strip leading zero from hour (8:30 AM instead of 08:30 AM)
     time_str = local.strftime("%I:%M %p")
     if time_str[0] == "0":
         time_str = time_str[1:]
@@ -283,61 +329,104 @@ def fmt_time(dt, all_day):
 
 
 def fmt_date(dt, all_day=False):
-    """Format datetime to readable date string"""
     if all_day:
         return dt.strftime("%a %b %d").lstrip("0").replace(" 0", " ")
     local = dt.astimezone()
     return local.strftime("%a %b %d").lstrip("0").replace(" 0", " ")
 
 
-def format_relative_time(published_at: str) -> str:
-    """Convert ISO timestamp to brief relative label used in source-time line."""
-    if not published_at:
-        return "Today"
+def _detect_health_alert(headline, summary):
+    health_keywords = ['ebola', 'virus', 'outbreak', 'pandemic', 'disease', 'epidemic',
+                       'health', 'clinical', 'medical', 'pathogen', 'cdc', 'who']
+    text = (headline + " " + summary).lower()
+    return any(keyword in text for keyword in health_keywords)
 
-    try:
-        dt = datetime.fromisoformat(published_at)
-    except Exception:
-        return "Today"
 
-    # Normalize to local naive for subtraction if needed
-    now = datetime.now(dt.tzinfo) if dt.tzinfo else datetime.now()
-    delta = now - dt
+def _get_article_category(headline, summary):
+    text = (headline + " " + summary).lower()
 
-    seconds = int(delta.total_seconds())
-    if seconds < 0:
-        return "Today"
+    categories = {
+        "Global Health": ["ebola", "virus", "outbreak", "disease", "epidemic", "pandemic", "health", "who", "cdc"],
+        "Breaking": ["breaking", "alert", "just in", "urgent", "immediate", "developing"],
+        "Markets": ["market", "stock", "trade", "economic", "inflation", "oil", "price"],
+        "Tech & AI": ["ai", "tech", "artificial intelligence", "claude", "model", "technology"],
+        "Politics": ["political", "congress", "senate", "trump", "biden", "government"],
+        "Global": ["international", "global", "country", "nation", "foreign"],
+    }
 
-    if seconds < 3600:
-        mins = max(1, seconds // 60)
-        return f"{mins}m ago"
+    for category, keywords in categories.items():
+        if any(kw in text for kw in keywords):
+            return category
+    return "News"
 
-    if seconds < 86400:
-        hrs = seconds // 3600
-        return f"{hrs}h ago"
 
-    if seconds < 172800:
-        return "Yesterday"
+def _get_article_emoji(category):
+    emoji_map = {
+        "Breaking": "🔴",
+        "Markets": "💼",
+        "Global Health": "🌍",
+        "Tech & AI": "🟢",
+        "Politics": "🏛️",
+        "Global": "🌍",
+        "Science": "🔬",
+    }
+    return emoji_map.get(category, "📰")
 
-    days = seconds // 86400
-    if days <= 6:
-        return f"{days}d ago"
 
-    return dt.strftime("%b %d")
+def _normalize_text(s):
+    return re.sub(r"\s+", " ", (s or "").strip().lower())
+
+
+def _headline_key(article):
+    title = _normalize_text(article.get("title", ""))
+    source = _normalize_text(article.get("source", ""))
+    return title or f"{source}:{_normalize_text(article.get('description', ''))[:80]}"
+
+
+def _dedupe_and_diversify_headlines(headlines, max_results=NEWS_MAX, per_source_cap=NEWS_PER_SOURCE_CAP):
+    if not headlines:
+        return []
+
+    seen = set()
+    unique = []
+    for a in headlines:
+        k = _headline_key(a)
+        if not k or k in seen:
+            continue
+        seen.add(k)
+        unique.append(a)
+
+    source_counts = {}
+    diversified = []
+    overflow = []
+
+    for a in unique:
+        src = (a.get("source") or "Unknown").strip()
+        c = source_counts.get(src, 0)
+        if c < per_source_cap:
+            diversified.append(a)
+            source_counts[src] = c + 1
+        else:
+            overflow.append(a)
+
+    for a in overflow:
+        if len(diversified) >= max_results:
+            break
+        diversified.append(a)
+
+    return diversified[:max_results]
 
 
 def render_calendar_section(events):
-    """Render calendar events in a week-view schedule format (single item)."""
     if not events:
         return ''
 
-    # Build a single article with a weekly schedule listing
     parts = []
     for event in events:
         day = fmt_date(event["start"], event["all_day"])
         time = fmt_time(event["start"], event["all_day"])
-        title = event.get("summary", "(No title)")
-        location = event.get("location") or "TBD"
+        title = escape(event.get("summary", "(No title)"))
+        location = escape(event.get("location") or "TBD")
 
         if event.get("all_day"):
             parts.append(f'<div style="margin-bottom: 14px;"><strong>{day}</strong><br>&nbsp;&nbsp;• All day • {title} — {location}<br></div>')
@@ -364,22 +453,19 @@ def render_calendar_section(events):
 
 
 def render_email_section(unread_count, recent_emails):
-    """Render email summary in newspaper item format"""
     if not recent_emails and unread_count == 0:
         return ''
 
     items = []
     if recent_emails:
-        for email in recent_emails[:5]:  # Show up to 5 recent
-            subject = email.get("subject", "(No subject)")
+        for email in recent_emails[:5]:
+            subject = escape(email.get("subject", "(No subject)"))
             from_addr = email.get("from", "")
-            # extract name if present
             if '<' in from_addr:
-                from_display = from_addr.split('<')[0].strip()
+                from_display = escape(from_addr.split('<')[0].strip())
             else:
-                from_display = from_addr
-            snippet = email.get("snippet") or ''
-            # truncate snippet to ~140 chars
+                from_display = escape(from_addr)
+            snippet = escape(email.get("snippet") or '')
             if len(snippet) > 140:
                 snippet = snippet[:137] + '...'
             if snippet:
@@ -407,7 +493,6 @@ def render_email_section(unread_count, recent_emails):
 
 
 def render_weather_section(weather):
-    """Render weather section in newspaper item format"""
     summary = f"""<strong>{weather['temp']}°F</strong> — {weather['condition']}<br>
 Feels like {weather['feels_like']}°F • Humidity {weather['humidity']}% • Wind {weather['wind']} mph"""
 
@@ -427,54 +512,51 @@ Feels like {weather['feels_like']}°F • Humidity {weather['humidity']}% • Wi
 
 
 def render_news_section(headlines):
-    """Render news items in newspaper format with a short summary when available"""
     if not headlines:
         return ''
 
-    category_to_emoji = {
-        "Breaking": "🔴",
-        "Tech & AI": "🟢",
-        "Markets": "💼",
-        "Global": "🌍",
-        "Politics": "🏛️",
-        "Science": "📊",
-        "Trending": "🎯",
-        "Global Health": "🧬",
-    }
-
     parts = []
-    for i, article in enumerate(headlines, 1):
-        # prefer category from article if provided
-        category = article.get("category") or ["Breaking", "Tech & AI", "Markets", "Global", "Politics", "Science", "Trending"][i % 7]
-        emoji = category_to_emoji.get(category, ["🔴", "🟢", "💼", "🌍", "🏛️", "📊", "🎯"][i % 7])
+    for article in headlines:
+        category = _get_article_category(article.get("title", ""), article.get("description", ""))
+        is_health_alert = _detect_health_alert(article.get("title", ""), article.get("description", ""))
 
-        headline = article.get("title", "(No title)")
-        source = (article.get("source") or "Unknown").strip()
+        emoji = _get_article_emoji(category)
+        headline = escape(article.get("title", "(No title)"))
+        source = escape(article.get("source", "Unknown"))
+        summary_text = article.get("description") or article.get("summary") or article.get("snippet") or ''
+        summary_text = escape(summary_text)
 
-        # try multiple keys for a summary/description
-        summary_text = article.get("description") or article.get("summary") or article.get("snippet") or article.get("content") or ''
-        if len(summary_text) > 400:
-            summary_text = summary_text[:397] + '...'
+        if len(summary_text) > 450:
+            summary_text = summary_text[:447] + '...'
 
-        published_label = format_relative_time(article.get("published_at", ""))
-        source_time = f"<strong>{source}</strong> · {published_label}"
-
-        takeaway = f"Source: <strong>{source}</strong>"
         summary_html = f"<p class=\"summary\">{summary_text}</p>" if summary_text else ""
 
-        parts.append(f"""
-    <article class=\"item\">
-        <div class=\"item-emoji\">{emoji}</div>
-        <div class=\"item-body\">
-            <div class=\"item-meta\">
-                <span class=\"category-tag\">{category}</span>
-                <span class=\"source-time\">{source_time}</span>
+        medical_callout = ""
+        if is_health_alert and category == "Global Health":
+            medical_callout = """
+            <div class="medical-callout">
+                <div class="medical-callout-label">⚕️ Health Alert</div>
+                <div class="medical-callout-text">Monitor this story for public health implications. Follow updates from <strong>WHO</strong> and <strong>CDC</strong>.</div>
             </div>
-            <h2 class=\"headline\">{headline}</h2>
+            """
+
+        takeaway = f"Source: <strong>{source}</strong>"
+        tag_class = "breaking" if category == "Breaking" else ("medical" if category == "Global Health" else "")
+
+        parts.append(f"""
+    <article class="item">
+        <div class="item-emoji">{emoji}</div>
+        <div class="item-body">
+            <div class="item-meta">
+                <span class="category-tag {tag_class}">{category}</span>
+                <span class="source-time"><strong>{source}</strong> · Today</span>
+            </div>
+            <h2 class="headline">{headline}</h2>
             {summary_html}
-            <div class=\"takeaway\">
-                <span class=\"takeaway-arrow\">→</span>
-                <span class=\"takeaway-text\">{takeaway}</span>
+            {medical_callout}
+            <div class="takeaway">
+                <span class="takeaway-arrow">→</span>
+                <span class="takeaway-text">{takeaway}</span>
             </div>
         </div>
     </article>
@@ -484,7 +566,8 @@ def render_news_section(headlines):
 
 
 def render_quote_section(quote):
-    """Render quote of the day in newspaper format"""
+    text = escape(quote.get('text', ''))
+    author = escape(quote.get('author', ''))
     return f"""
     <article class="item">
         <div class="item-emoji">✨</div>
@@ -493,19 +576,17 @@ def render_quote_section(quote):
                 <span class="category-tag">Inspiration</span>
                 <span class="source-time">Daily Quote · Zenquotes</span>
             </div>
-            <h2 class="headline" style="font-style: italic;">"{quote['text']}"</h2>
-            <p class="summary">— {quote['author']}</p>
+            <h2 class="headline" style="font-style: italic;">"{text}"</h2>
+            <p class="summary">— {author}</p>
         </div>
     </article>
     """
 
 
 def fetch_all_data():
-    """Fetch all required data with caching"""
     data = {}
 
     try:
-        # Try calendar from cache first
         if (cached := get_cached_data("calendar")) is not None:
             print("Using cached calendar data")
             data["calendar"] = cached
@@ -515,9 +596,7 @@ def fetch_all_data():
             events = get_events(calendar_service, days=7)
             data["calendar"] = events
             set_cache("calendar", events)
-            print(f"Cached calendar data ({len(events)} events)")
 
-        # Gmail data
         if (cached := get_cached_data("gmail")) is not None:
             print("Using cached email data")
             data["unread_count"] = cached["unread_count"]
@@ -531,9 +610,7 @@ def fetch_all_data():
             data["unread_count"] = unread_count
             data["recent_emails"] = recent_emails
             set_cache("gmail", {"unread_count": unread_count, "recent_emails": recent_emails})
-            print(f"Cached email data ({unread_count} unread)")
 
-        # Weather
         if (cached := get_cached_data("weather")) is not None:
             print("Using cached weather data")
             data["weather"] = cached
@@ -541,19 +618,24 @@ def fetch_all_data():
             print("Fetching weather...")
             data["weather"] = get_weather()
             set_cache("weather", data["weather"])
-            print("Cached weather data")
 
-        # News
         if (cached := get_cached_data("news")) is not None:
             print("Using cached news data")
-            data["headlines"] = cached
+            data["headlines"] = _dedupe_and_diversify_headlines(
+                cached,
+                max_results=NEWS_MAX,
+                per_source_cap=NEWS_PER_SOURCE_CAP
+            )
         else:
             print("Fetching headlines...")
-            data["headlines"] = get_headlines(max_results=7)
+            raw_headlines = get_headlines(max_results=NEWS_FETCH_POOL)
+            data["headlines"] = _dedupe_and_diversify_headlines(
+                raw_headlines,
+                max_results=NEWS_MAX,
+                per_source_cap=NEWS_PER_SOURCE_CAP
+            )
             set_cache("news", data["headlines"])
-            print(f"Cached news data ({len(data['headlines'])} headlines)")
 
-        # Quote
         if (cached := get_cached_data("quote")) is not None:
             print("Using cached quote data")
             data["quote"] = cached
@@ -561,7 +643,6 @@ def fetch_all_data():
             print("Fetching quote...")
             data["quote"] = get_quote()
             set_cache("quote", data["quote"])
-            print("Cached quote data")
 
     except Exception as e:
         print(f"Error fetching data: {e}", file=sys.stderr)
@@ -571,37 +652,53 @@ def fetch_all_data():
 
 
 def generate_html(data):
-    """Generate complete HTML file from data"""
     now = datetime.now()
     formatted_date = now.strftime("%A, %B %d, %Y")
-    current_time = now.strftime("%I:%M %p").lstrip("0")
+    location = "Jacksonville"
 
-    # Render all sections
+    num_news = len(data.get("headlines", []))
+    num_calendar = len(data.get("calendar", []))
+    story_count = num_news + (3 if num_calendar > 0 else 0)
+    story_summary = f"{story_count} stories · Curated for Dr. Maiz"
+
+    sources = FIXED_SOURCES_LABEL
+
+    nav_sections = (
+        "<span>📅 Calendar</span>"
+        "<span>📧 Email</span>"
+        "<span>🌤️ Weather</span>"
+        "<span>⚕️ Medical</span>"
+        "<span>📰 News</span>"
+        "<span>✨ Inspiration</span>"
+    ) if STRICT_CLASSIC_LAYOUT else (
+        "<span>📅 Calendar</span>"
+        "<span>📧 Email</span>"
+        "<span>🌤️ Weather</span>"
+        "<span>🔴 News</span>"
+        "<span>✨ Quote</span>"
+    )
+
     calendar_html = render_calendar_section(data["calendar"]) if data.get("calendar") is not None else ''
     email_html = render_email_section(data.get("unread_count", 0), data.get("recent_emails", []))
     weather_html = render_weather_section(data["weather"]) if data.get("weather") is not None else ''
     news_html = render_news_section(data.get("headlines", []))
-    quote_html = render_quote_section(data.get("quote", {"text":"","author":""}))
+    quote_html = render_quote_section(data.get("quote", {"text": "", "author": ""}))
 
     sections = calendar_html + email_html + weather_html + news_html + quote_html
 
-    # Count items for masthead (kept for compatibility but not displayed in template)
-    item_count = len([x for x in [calendar_html, email_html, weather_html, news_html, quote_html] if x])
-
-    # Generate complete HTML
     html = HTML_TEMPLATE.format(
         date=formatted_date,
         formatted_date=formatted_date,
-        current_time=current_time,
-        item_count=item_count,
+        location=location,
+        story_summary=story_summary,
+        sources=sources,
+        nav_sections=nav_sections,
         sections=sections,
     )
-
     return html
 
 
 def save_html(html_content):
-    """Save HTML to file and return filename"""
     now = datetime.now()
     filename = f"daily-briefing-{now.strftime('%Y-%m-%d')}.html"
 
@@ -612,22 +709,15 @@ def save_html(html_content):
 
 
 def main():
-    """Main entry point"""
     print("🔄 Generating daily briefing...")
-
-    # Fetch data
     data = fetch_all_data()
     if not data:
         print("❌ Failed to fetch data", file=sys.stderr)
         sys.exit(1)
 
-    # Generate HTML
     html = generate_html(data)
-
-    # Save to file
     filename = save_html(html)
     print(f"✅ Daily briefing saved to {filename}")
-
     return filename
 
 
