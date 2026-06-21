@@ -1,4 +1,50 @@
-<!DOCTYPE html><!-- saved from url=(0098)file:///C:/Users/ifr4201/OneDrive%20-%20HCA%20Healthcare/Desktop/ABIM_Combined_Study_Guide_v5.html --><html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><style>@charset "utf-8";
+<!DOCTYPE html><!-- saved from url=(0098)file:///C:/Users/ifr4201/OneDrive%20-%20HCA%20Healthcare/Desktop/ABIM_Combined_Study_Guide_v5.html --><html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><style>@charset "utf-8";<style id="abim-layout-and-nav-fixes">
+:root {
+  --abim-unified-max-width: 1100px;
+  --abim-unified-pad-x: 20px;
+  --abim-anchor-offset: 180px;
+}
+
+#main-content .guide-anchor-target,
+#main-content .guide-cardio,
+#main-content .guide-id,
+#main-content .guide-gi,
+#main-content .guide-endo,
+#main-content .guide-nephro,
+#main-content .guide-pulm,
+#main-content .guide-heme,
+#main-content .guide-rheum,
+#main-content .guide-neuro,
+#main-content .guide-womens,
+#main-content .guide-derm,
+#main-content .guide-palliative,
+#main-content .guide-periop {
+  width: 100% !important;
+  max-width: var(--abim-unified-max-width) !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  padding-left: var(--abim-unified-pad-x) !important;
+  padding-right: var(--abim-unified-pad-x) !important;
+}
+
+.guide-cardio .content,
+.guide-id .content,
+.guide-gi .content {
+  max-width: 100% !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+
+.guide-anchor-target,
+.section,
+.topic,
+[id] {
+  scroll-margin-top: var(--abim-anchor-offset);
+}
+
+#main-content, #main-content * { box-sizing: border-box; }
+html, body { overflow-x: hidden; }
+</style>
 
 *, ::before, ::after { box-sizing: border-box; }
 
@@ -32762,5 +32808,150 @@ body#combined-body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI",
 
 
 
+<script id="abim-sidebar-toc-nav-fixes">
+(() => {
+  const d = document;
+  const q = (sel, root = d) => root.querySelector(sel);
+  const qa = (sel, root = d) => Array.from(root.querySelectorAll(sel));
+  const isMobile = () => window.matchMedia('(max-width: 900px)').matches;
+  const slugify = (s) =>
+    (s || '')
+      .toLowerCase()
+      .trim()
+      .replace(/[\u{0080}-\u{FFFF}]/gu, '')
+      .replace(/[^a-z0-9\s-_]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-');
 
+  const anchorLinks = qa('a.nav-pill[href^="#"], a.nav-btn[href^="#"], a.toc-link[href^="#"]');
+  const existingIds = new Set(qa('[id]').map(el => el.id).filter(Boolean));
+  const candidateTargets = qa('.topic, .section, h2, h3');
+
+  function ensureTargetForLink(link) {
+    const raw = link.getAttribute('href');
+    if (!raw || !raw.startsWith('#')) return;
+    const id = raw.slice(1);
+    if (!id || existingIds.has(id)) return;
+
+    const label = (link.textContent || '').trim();
+    const labelSlug = slugify(label);
+
+    let target =
+      candidateTargets.find(el => slugify(el.id || '') === slugify(id)) ||
+      candidateTargets.find(el => slugify(el.textContent || '') === slugify(id)) ||
+      candidateTargets.find(el => slugify(el.textContent || '').includes(labelSlug));
+
+    if (!target) return;
+    if (!target.id) {
+      target.id = id;
+      existingIds.add(id);
+    }
+  }
+
+  anchorLinks.forEach(ensureTargetForLink);
+
+  qa('a[href^="#"]').forEach(link => {
+    link.addEventListener('click', (e) => {
+      const href = link.getAttribute('href');
+      if (!href || href === '#') return;
+      const id = href.slice(1);
+      const target = d.getElementById(id);
+      if (!target) return;
+      e.preventDefault();
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      history.replaceState(null, '', `#${id}`);
+    });
+  });
+
+  const toggleBtn = q('#toc-toggle');
+  const sidebar = q('#toc-sidebar');
+  const overlay = q('#sidebar-overlay');
+  const main = q('#main-content');
+
+  if (toggleBtn && sidebar && overlay && main) {
+    const setExpanded = (v) => toggleBtn.setAttribute('aria-expanded', String(v));
+
+    function openSidebar() {
+      if (isMobile()) {
+        sidebar.classList.add('open');
+        sidebar.classList.remove('hidden');
+        overlay.classList.add('visible');
+      } else {
+        sidebar.classList.remove('hidden');
+        main.classList.remove('no-sidebar');
+      }
+      setExpanded(true);
+    }
+
+    function closeSidebar() {
+      if (isMobile()) {
+        sidebar.classList.remove('open');
+        overlay.classList.remove('visible');
+      } else {
+        sidebar.classList.add('hidden');
+        main.classList.add('no-sidebar');
+      }
+      setExpanded(false);
+    }
+
+    function toggleSidebar() {
+      if (isMobile()) {
+        const open = sidebar.classList.contains('open');
+        if (open) closeSidebar(); else openSidebar();
+      } else {
+        const hidden = sidebar.classList.contains('hidden');
+        if (hidden) openSidebar(); else closeSidebar();
+      }
+    }
+
+    toggleBtn.addEventListener('click', toggleSidebar);
+    overlay.addEventListener('click', closeSidebar);
+
+    qa('.toc-link[href^="#"]', sidebar).forEach(link => {
+      link.addEventListener('click', () => { if (isMobile()) closeSidebar(); });
+    });
+
+    window.addEventListener('resize', () => {
+      if (!isMobile()) {
+        overlay.classList.remove('visible');
+        sidebar.classList.remove('open');
+      }
+    });
+  }
+
+  const tocLinks = qa('#toc-sidebar .toc-link[href^="#"]');
+  const tocMap = new Map();
+  tocLinks.forEach(a => {
+    const id = (a.getAttribute('href') || '').slice(1);
+    if (id) tocMap.set(id, a);
+  });
+
+  const observedTargets = Array.from(tocMap.keys())
+    .map(id => d.getElementById(id))
+    .filter(Boolean);
+
+  if (observedTargets.length) {
+    const clearActive = () => tocLinks.forEach(a => a.classList.remove('active'));
+
+    const io = new IntersectionObserver((entries) => {
+      const visible = entries
+        .filter(e => e.isIntersecting)
+        .sort((a, b) => Math.abs(a.boundingClientRect.top) - Math.abs(b.boundingClientRect.top));
+
+      if (!visible.length) return;
+      const id = visible[0].target.id;
+      const active = tocMap.get(id);
+      if (!active) return;
+      clearActive();
+      active.classList.add('active');
+    }, {
+      root: null,
+      rootMargin: '-25% 0px -60% 0px',
+      threshold: [0.05, 0.2, 0.4]
+    });
+
+    observedTargets.forEach(el => io.observe(el));
+  }
+})();
+</script>
 </body></html>
