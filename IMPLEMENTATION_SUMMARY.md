@@ -35,16 +35,10 @@ A complete Python system that merges personal data (calendar, email, weather) wi
    - google-auth-oauthlib==1.2.1
    - requests==2.31.0
 
-5. **.github/workflows/daily-briefing.yml**
-   - GitHub Actions workflow
-   - Runs daily at 7 AM UTC
-   - Manual trigger available
-   - Auto-commits generated HTML to repo
-
-6. **BRIEFING_SETUP.md**
+5. **BRIEFING_SETUP.md**
    - Complete setup guide
    - Configuration instructions
-   - Scheduling options (cron, GitHub Actions, systemd)
+   - Scheduling options (cron, systemd)
    - Troubleshooting section
    - Email delivery options
 
@@ -108,14 +102,7 @@ Implemented file-based cache to avoid repeated API calls:
 0 7 * * * python3 daily_briefing_generator.py
 ```
 
-### 2. GitHub Actions (Recommended for Cloud)
-
-- Configured in `.github/workflows/daily-briefing.yml`
-- Runs at 7 AM UTC daily
-- Stores credentials in GitHub Secrets
-- Auto-commits HTML files to repo
-
-### 3. systemd Timer (Linux)
+### 2. systemd Timer (Linux)
 
 - Service + timer unit files
 - Persistent timer (survives reboots)
@@ -174,8 +161,6 @@ MaizNews/
 ├── [6 client modules]               # Copied from personal-dashboard
 ├── requirements.txt                 # Python dependencies
 ├── BRIEFING_SETUP.md                # Setup guide
-├── .github/workflows/
-│   └── daily-briefing.yml           # GitHub Actions
 └── daily-briefing-[DATE].html       # Generated output
 ```
 
@@ -215,7 +200,6 @@ Optional additions (not implemented):
 - [x] Caching system implemented
 - [x] HTML template with full CSS
 - [x] Client modules copied and verified
-- [x] GitHub Actions workflow created
 - [x] Setup documentation written
 - [x] Test file generated and verified
 - [x] Code committed to branch
