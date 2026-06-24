@@ -121,20 +121,7 @@ With logging:
 0 7 * * * cd /path/to/MaizNews && python3 daily_briefing_generator.py >> daily-briefing.log 2>&1
 ```
 
-### Option B: GitHub Actions (Recommended for Cloud)
-
-The `.github/workflows/daily-briefing.yml` workflow runs daily at 7 AM UTC.
-
-**Setup:**
-
-1. Push this repo to GitHub
-2. Go to **Settings → Secrets and variables → Actions**
-3. Add secret `GOOGLE_CREDENTIALS` with contents of your `credentials.json`
-4. Workflow will auto-run daily and commit HTML files to repo
-
-To manually trigger: Go to **Actions → Generate Daily Briefing → Run workflow**
-
-### Option C: systemd Timer (Linux)
+### Option B: systemd Timer (Linux)
 
 Create `~/.config/systemd/user/daily-briefing.service`:
 
@@ -252,8 +239,6 @@ MaizNews/
 ├── token.pickle                   # Auth token cache (gitignored)
 ├── requirements.txt               # Python dependencies
 ├── daily-briefing-2026-06-20.html # Generated output
-└── .github/workflows/
-    └── daily-briefing.yml         # GitHub Actions
 ```
 
 ## Data Flow
@@ -316,6 +301,6 @@ For issues:
 
 1. ✅ Run it once manually
 2. ✅ Verify output looks good in browser
-3. ✅ Set up scheduling (cron or GitHub Actions)
+3. ✅ Set up scheduling (cron or systemd)
 4. ✅ Optional: Configure email delivery
 5. ✅ Share with friends/family!
